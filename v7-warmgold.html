@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merech Collection · Everything is Connected</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    @keyframes fsOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fsFadeIn    { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fsLineIn    { from { width: 0; }  to { width: 48px; } }
+
+    #fs-prompt {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(242, 234, 218, 0.93);
+      backdrop-filter: blur(10px);
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 22px;
+      animation: fsOverlayIn 0.8s ease forwards;
+    }
+    #fs-label {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 15px; letter-spacing: 0.38em; text-transform: uppercase;
+      color: #3a2d1f; opacity: 0;
+      animation: fsFadeIn 0.55s ease 0.4s forwards;
+    }
+    #fs-rule {
+      height: 1px; width: 0;
+      background: rgba(58,45,31,0.35);
+      animation: fsLineIn 0.55s ease 0.7s forwards;
+    }
+    #fs-btn {
+      opacity: 0;
+      background: rgba(242,234,218,0.6);
+      border: 1px solid rgba(58,45,31,0.38);
+      color: #3a2d1f;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 18px; font-style: italic; letter-spacing: 0.07em;
+      padding: 13px 36px; cursor: pointer;
+      transition: box-shadow 0.25s ease 0.65s, transform 0.25s cubic-bezier(0.6,0,0.3,1) 0.65s, border-color 0.25s ease;
+      animation: fsFadeIn 0.55s ease 0.9s forwards;
+    }
+    #fs-btn:hover {
+      border-color: rgba(58,45,31,0.7);
+      transform: translate(-3px, -3px);
+      box-shadow:
+        1px 1px 0 rgba(58,45,31,0.35),
+        1.5px 1.5px 0 rgba(55,42,28,0.33),
+        2px 2px 0 rgba(52,39,25,0.31),
+        2.5px 2.5px 0 rgba(48,36,22,0.28),
+        3px 3px 0 rgba(44,32,18,0.25),
+        5px 5px 10px rgba(0,0,0,0.12);
+    }
+
+    /* Phase 1: content fades out, cream stays */
+    #fs-prompt.dismissing { pointer-events: none; }
+    #fs-prompt.dismissing #fs-btn   { opacity: 0; transition: opacity 0.2s ease 0s; }
+    #fs-prompt.dismissing #fs-rule  { opacity: 0; transition: opacity 0.2s ease 0.08s; }
+    #fs-prompt.dismissing #fs-label { opacity: 0; transition: opacity 0.2s ease 0.15s; }
+
+    /* Phase 2: cream fades to reveal tiles */
+    #fs-prompt.fading-bg {
+      background: rgba(242,234,218,0) !important;
+      backdrop-filter: blur(0px) !important;
+      transition: background 0.5s ease, backdrop-filter 0.5s ease !important;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #111; }
+    body { cursor: url('gecko.png') 72 22, auto; }
+
+    .scene { position: relative; width: 100vw; height: 100vh; }
+
+    .bg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* Layer 0: resting state — always visible */
+    .bg-rest { z-index: 0; }
+
+    /* Layers 1–4: per-property reveals, each clipped to its tile area */
+    .prop-reveal {
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.55s ease;
+    }
+    .prop-reveal.active { opacity: 1; }
+
+    /* Hit zones */
+    .overlay {
+      position: absolute; inset: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .logo-zone {
+      position: absolute;
+      pointer-events: auto;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.001);
+      transition: transform 0.25s ease, filter 0.25s ease;
+    }
+
+    /* Non-3D zones: 2D lift */
+    .logo-zone:not(.logo-zone--3d):hover {
+      transform: translate(-2px, -3px);
+      filter: drop-shadow(6px 9px 18px rgba(0,0,0,0.45));
+    }
+
+    .logo-link {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0;
+    }
+
+
+    /* Default logo hover — flat */
+    .logo-zone:hover .logo-img {
+      opacity: 1;
+      transform: translateY(-4px) scale(1.04);
+      filter: drop-shadow(0 10px 22px rgba(0,0,0,0.4)) drop-shadow(0 3px 6px rgba(0,0,0,0.25));
+      transition:
+        opacity 0.2s ease 0.2s,
+        transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s,
+        filter 0.3s ease 0.2s;
+    }
+
+    /* All 3D zones: ceramic tile shadow + lift */
+    .logo-zone--3d:hover .logo-img {
+      opacity: 1;
+      transform: translate(-10.9px, -11px);
+      filter:
+        brightness(1.12)
+        drop-shadow(0.5px 0.5px 0 rgba(230,214,192,0.97))
+        drop-shadow(1px 1px 0 rgba(222,204,178,0.96))
+        drop-shadow(1.5px 1.5px 0 rgba(212,192,164,0.96))
+        drop-shadow(2px 2px 0 rgba(200,178,150,0.95))
+        drop-shadow(2.5px 2.5px 0 rgba(185,162,132,0.95))
+        drop-shadow(3px 3px 0 rgba(168,144,112,0.94))
+        drop-shadow(5px 5px 14px rgba(0,0,0,0.45));
+      transition:
+        opacity 0.15s ease 0.4s,
+        transform 0.25s cubic-bezier(0.6, 0, 0.3, 1) 0.65s,
+        filter 0.25s ease 0.65s;
+    }
+
+    /* Per-zone overrides — must come after the main rule (same specificity) */
+    [data-reveal="rev-boutique"]:hover .logo-img {
+      transform: translate(-9.6px, -11px);
+    }
+    [data-reveal="rev-cafe"]:hover .logo-img,
+    [data-reveal="rev-roastery"]:hover .logo-img {
+      transform: translate(10.9px, -11px);
+      filter:
+        brightness(1.18)
+        drop-shadow(-0.5px 0.5px 0 rgba(230,214,192,0.97))
+        drop-shadow(-1px 1px 0 rgba(222,204,178,0.96))
+        drop-shadow(-1.5px 1.5px 0 rgba(212,192,164,0.96))
+        drop-shadow(-2px 2px 0 rgba(200,178,150,0.95))
+        drop-shadow(-2.5px 2.5px 0 rgba(185,162,132,0.95))
+        drop-shadow(-3px 3px 0 rgba(168,144,112,0.94))
+        drop-shadow(-5px 5px 14px rgba(0,0,0,0.45));
+    }
+
+  </style>
+</head>
+<body>
+  <div class="scene">
+
+    <!-- Layer 0: resting state -->
+    <img src="bg-rest.jpg" class="bg bg-rest" alt="">
+
+    <!-- Per-property full-page reveals -->
+    <img src="prop-treehouse.png" class="bg prop-reveal" id="rev-th"       alt="">
+    <img src="prop-cafe.png"      class="bg prop-reveal" id="rev-cafe"     alt="">
+    <img src="prop-boutique.png"  class="bg prop-reveal" id="rev-boutique" alt="">
+    <img src="prop-roastery.png"  class="bg prop-reveal" id="rev-roastery" alt="">
+
+    <!-- Hit zones -->
+    <div class="overlay">
+      <div class="logo-zone logo-zone--3d" style="left:2.7%; top:13.7%; width:17.8%; height:28.6%" data-reveal="rev-th">
+        <a href="https://treehouseboutiquehotel.com/" target="_blank" rel="noopener noreferrer" class="logo-link">
+          <img src="logo-treehouse.png" class="logo-img" alt="Tree House Boutique Hotel">
+        </a>
+      </div>
+      <div class="logo-zone logo-zone--3d" style="left:81.0%; top:13.9%; width:17.8%; height:27.9%" data-reveal="rev-cafe">
+        <a href="https://panandkoffeeroastery.com/flagship-store/" target="_blank" rel="noopener noreferrer" class="logo-link">
+          <img src="logo-cafe.png" class="logo-img" alt="Pan & Kof.féé Café">
+        </a>
+      </div>
+      <div class="logo-zone logo-zone--3d" style="left:11.2%; top:56.2%; width:18.0%; height:28.5%" data-reveal="rev-boutique">
+        <a href="https://boutiquebythemuseo.com/" target="_blank" rel="noopener noreferrer" class="logo-link">
+          <img src="logo-boutique.png" class="logo-img" alt="Boutique by the Museo">
+        </a>
+      </div>
+      <div class="logo-zone logo-zone--3d" style="left:72.4%; top:56.0%; width:17.8%; height:28.2%" data-reveal="rev-roastery">
+        <a href="https://panandkoffeeroastery.com/" target="_blank" rel="noopener noreferrer" class="logo-link">
+          <img src="logo-roastery.png" class="logo-img" alt="Pan & Kof.féé Roastery">
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Fullscreen prompt -->
+  <div id="fs-prompt">
+    <div id="fs-label">Merech Collection</div>
+    <div id="fs-rule"></div>
+    <button id="fs-btn" onclick="enterFS()">Enter the collection →</button>
+  </div>
+
+  <!-- TEMP: coordinate display — remove when done -->
+  <div id="coords" style="
+    position:fixed; bottom:12px; left:12px; z-index:999;
+    background:rgba(0,0,0,0.65); color:#fff;
+    font:13px/1.6 monospace; padding:6px 10px; border-radius:4px;
+    pointer-events:none;
+  ">x: — &nbsp; y: —</div>
+
+  <script>
+    document.addEventListener('mousemove', e => {
+      const x = (e.clientX / window.innerWidth  * 100).toFixed(1);
+      const y = (e.clientY / window.innerHeight * 100).toFixed(1);
+      document.getElementById('coords').textContent = `x: ${x}%   y: ${y}%`;
+    });
+  </script>
+
+  <script>
+    document.querySelectorAll('.logo-zone').forEach(zone => {
+      const reveal = document.getElementById(zone.dataset.reveal);
+      zone.addEventListener('mouseenter', () => reveal.classList.add('active'));
+      zone.addEventListener('mouseleave', () => reveal.classList.remove('active'));
+    });
+  </script>
+
+  <script>
+    const prompt = document.getElementById('fs-prompt');
+    const fsChildren = ['fs-label','fs-rule','fs-btn'].map(id => document.getElementById(id));
+
+    function isFullScreen() {
+      return window.innerWidth >= window.screen.width * 0.95
+          && window.innerHeight >= window.screen.height * 0.95;
+    }
+
+    function showPrompt() {
+      prompt.classList.remove('dismissing');
+      // Restart animations by forcing reflow
+      prompt.style.display = 'none';
+      prompt.offsetHeight;
+      fsChildren.forEach(el => { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; });
+      prompt.style.display = 'flex';
+    }
+
+    function checkFS() {
+      if (isFullScreen()) {
+        prompt.style.display = 'none';
+      } else {
+        showPrompt();
+      }
+    }
+
+    function enterFS() {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      // Phase 1: fade content out (0–0.35s)
+      prompt.classList.add('dismissing');
+      // Phase 2: fade cream background out over 0.5s
+      setTimeout(() => prompt.classList.add('fading-bg'), 350);
+      // Hide entirely after cream dissolve completes
+      setTimeout(() => {
+        prompt.style.display = 'none';
+        prompt.classList.remove('dismissing', 'fading-bg');
+      }, 950);
+    }
+
+    document.addEventListener('fullscreenchange', checkFS);
+    document.addEventListener('webkitfullscreenchange', checkFS);
+    window.addEventListener('resize', checkFS);
+    checkFS();
+  </script>
+</body>
+</html>
