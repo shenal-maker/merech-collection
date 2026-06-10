@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Merech Collection · Everything is Connected</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap" rel="stylesheet">
   <style>
     #fs-prompt {
       position: fixed; inset: 0; z-index: 9999;
@@ -28,12 +28,12 @@
 
     #fs-label {
       font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 15px; letter-spacing: 0.38em; text-transform: uppercase;
+      font-size: 26px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase;
       color: #3a2d1f;
     }
     #fs-location {
       font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase;
+      font-size: 15px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
       color: rgba(58,45,31,0.55);
     }
     #fs-rule {
@@ -63,7 +63,7 @@
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #111; }
-    body { cursor: url('gecko.png') 72 22, auto; }
+    /* body { cursor: url('gecko.png') 72 22, auto; } */
 
     .scene { position: relative; width: 100vw; height: 100vh; }
 
@@ -287,8 +287,17 @@
 
     document.addEventListener('fullscreenchange', sync);
     document.addEventListener('webkitfullscreenchange', sync);
-    // resize catches F11 fullscreen which doesn't set fullscreenElement
     window.addEventListener('resize', sync);
+
+    // State changed while page was hidden — snap, don't replay a stale fade
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      prompt.style.transition = 'none';
+      sync();
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => prompt.style.transition = ''));
+    });
+
     sync();
   </script>
 </body>
