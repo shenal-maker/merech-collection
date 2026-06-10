@@ -7,40 +7,47 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
   <style>
-    @keyframes fsOverlayIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes fsFadeIn    { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes fsLineIn    { from { width: 0; }  to { width: 48px; } }
-
     #fs-prompt {
-      display: none;
       position: fixed; inset: 0; z-index: 9999;
-      background: rgba(242, 234, 218, 0.93);
+      background: rgba(237, 232, 220, 0.96);
       backdrop-filter: blur(10px);
-      flex-direction: column; align-items: center; justify-content: center;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
       gap: 22px;
-      animation: fsOverlayIn 0.8s ease forwards;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 1.5s ease, visibility 0s linear 1.5s;
     }
+    #fs-prompt.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transition: opacity 1.5s ease, visibility 0s;
+    }
+
     #fs-label {
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: 15px; letter-spacing: 0.38em; text-transform: uppercase;
-      color: #3a2d1f; opacity: 0;
-      animation: fsFadeIn 0.55s ease 0.4s forwards;
+      color: #3a2d1f;
+    }
+    #fs-location {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase;
+      color: rgba(58,45,31,0.55);
     }
     #fs-rule {
-      height: 1px; width: 0;
+      height: 1px; width: 48px;
       background: rgba(58,45,31,0.35);
-      animation: fsLineIn 0.55s ease 0.7s forwards;
     }
     #fs-btn {
-      opacity: 0;
       background: rgba(242,234,218,0.6);
       border: 1px solid rgba(58,45,31,0.38);
       color: #3a2d1f;
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: 18px; font-style: italic; letter-spacing: 0.07em;
       padding: 13px 36px; cursor: pointer;
-      transition: box-shadow 0.25s ease 0.65s, transform 0.25s cubic-bezier(0.6,0,0.3,1) 0.65s, border-color 0.25s ease;
-      animation: fsFadeIn 0.55s ease 0.9s forwards;
+      transition: box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.6,0,0.3,1), border-color 0.25s ease;
     }
     #fs-btn:hover {
       border-color: rgba(58,45,31,0.7);
@@ -52,19 +59,6 @@
         2.5px 2.5px 0 rgba(48,36,22,0.28),
         3px 3px 0 rgba(44,32,18,0.25),
         5px 5px 10px rgba(0,0,0,0.12);
-    }
-
-    /* Phase 1: content fades out, cream stays */
-    #fs-prompt.dismissing { pointer-events: none; }
-    #fs-prompt.dismissing #fs-btn   { opacity: 0; transition: opacity 0.2s ease 0s; }
-    #fs-prompt.dismissing #fs-rule  { opacity: 0; transition: opacity 0.2s ease 0.08s; }
-    #fs-prompt.dismissing #fs-label { opacity: 0; transition: opacity 0.2s ease 0.15s; }
-
-    /* Phase 2: cream fades to reveal tiles */
-    #fs-prompt.fading-bg {
-      background: rgba(242,234,218,0) !important;
-      backdrop-filter: blur(0px) !important;
-      transition: background 0.5s ease, backdrop-filter 0.5s ease !important;
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -93,10 +87,23 @@
     }
     .prop-reveal.active { opacity: 1; }
 
+    /* Shadow / light overlay */
+    .shadow-overlay {
+      position: absolute; inset: 0;
+      z-index: 4;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      mix-blend-mode: multiply;
+      opacity: 0.24;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
     /* Hit zones */
     .overlay {
       position: absolute; inset: 0;
-      z-index: 2;
+      z-index: 3;
       pointer-events: none;
     }
     .logo-zone {
@@ -147,7 +154,7 @@
       opacity: 1;
       transform: translate(-10.9px, -11px);
       filter:
-        brightness(1.12)
+        brightness(1.16)
         drop-shadow(0.5px 0.5px 0 rgba(230,214,192,0.97))
         drop-shadow(1px 1px 0 rgba(222,204,178,0.96))
         drop-shadow(1.5px 1.5px 0 rgba(212,192,164,0.96))
@@ -169,7 +176,7 @@
     [data-reveal="rev-roastery"]:hover .logo-img {
       transform: translate(10.9px, -11px);
       filter:
-        brightness(1.18)
+        brightness(1.19)
         drop-shadow(-0.5px 0.5px 0 rgba(230,214,192,0.97))
         drop-shadow(-1px 1px 0 rgba(222,204,178,0.96))
         drop-shadow(-1.5px 1.5px 0 rgba(212,192,164,0.96))
@@ -192,6 +199,10 @@
     <img src="prop-cafe.png"      class="bg prop-reveal" id="rev-cafe"     alt="">
     <img src="prop-boutique.png"  class="bg prop-reveal" id="rev-boutique" alt="">
     <img src="prop-roastery.png"  class="bg prop-reveal" id="rev-roastery" alt="">
+
+    <!-- Shadow / light overlay -->
+    <video class="shadow-overlay" src="shadow-overlay.mp4" autoplay loop muted playsinline id="shadow-vid"></video>
+    <img class="shadow-overlay" src="shadow-overlay.jpg" alt="" style="opacity:0.30; filter: sepia(0.2) saturate(1.4) hue-rotate(-5deg) brightness(1.08)">
 
     <!-- Hit zones -->
     <div class="overlay">
@@ -222,6 +233,7 @@
   <!-- Fullscreen prompt -->
   <div id="fs-prompt">
     <div id="fs-label">Merech Collection</div>
+    <div id="fs-location">Mérida, México</div>
     <div id="fs-rule"></div>
     <button id="fs-btn" onclick="enterFS()">Enter the collection →</button>
   </div>
@@ -233,6 +245,12 @@
     font:13px/1.6 monospace; padding:6px 10px; border-radius:4px;
     pointer-events:none;
   ">x: — &nbsp; y: —</div>
+
+  <script>
+    const shadowVid = document.getElementById('shadow-vid');
+    shadowVid.addEventListener('loadedmetadata', () => { shadowVid.playbackRate = 0.5; });
+    shadowVid.playbackRate = 0.5;
+  </script>
 
   <script>
     document.addEventListener('mousemove', e => {
@@ -252,49 +270,24 @@
 
   <script>
     const prompt = document.getElementById('fs-prompt');
-    const fsChildren = ['fs-label','fs-rule','fs-btn'].map(id => document.getElementById(id));
 
     function isFullScreen() {
-      return window.innerWidth >= window.screen.width * 0.95
-          && window.innerHeight >= window.screen.height * 0.95;
+      return !!(document.fullscreenElement || document.webkitFullscreenElement);
     }
 
-    function showPrompt() {
-      prompt.classList.remove('dismissing');
-      // Restart animations by forcing reflow
-      prompt.style.display = 'none';
-      prompt.offsetHeight;
-      fsChildren.forEach(el => { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; });
-      prompt.style.display = 'flex';
-    }
-
-    function checkFS() {
-      if (isFullScreen()) {
-        prompt.style.display = 'none';
-      } else {
-        showPrompt();
-      }
+    function sync() {
+      prompt.classList.toggle('visible', !isFullScreen());
     }
 
     function enterFS() {
       const el = document.documentElement;
-      if (el.requestFullscreen) el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      // Phase 1: fade content out (0–0.35s)
-      prompt.classList.add('dismissing');
-      // Phase 2: fade cream background out over 0.5s
-      setTimeout(() => prompt.classList.add('fading-bg'), 350);
-      // Hide entirely after cream dissolve completes
-      setTimeout(() => {
-        prompt.style.display = 'none';
-        prompt.classList.remove('dismissing', 'fading-bg');
-      }, 950);
+      el.requestFullscreen?.() || el.webkitRequestFullscreen?.();
     }
 
-    document.addEventListener('fullscreenchange', checkFS);
-    document.addEventListener('webkitfullscreenchange', checkFS);
-    window.addEventListener('resize', checkFS);
-    checkFS();
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    window.addEventListener('resize', sync);
+    sync();
   </script>
 </body>
 </html>
