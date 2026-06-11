@@ -584,15 +584,19 @@
     document.addEventListener('webkitfullscreenchange', sync);
     window.addEventListener('resize', sync);
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState !== 'visible') return;
+    function snapSync() {
       prompt.style.transition = 'none';
       sync();
       requestAnimationFrame(() =>
         requestAnimationFrame(() => prompt.style.transition = ''));
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      snapSync();
     });
 
-    sync();
+    snapSync();
   </script>
 
   <script>
